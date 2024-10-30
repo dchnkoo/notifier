@@ -105,9 +105,9 @@ def get_event_loop():
         return False
 
 
-class _handle_notify[F]:
+class _handle_notify:
 
-    def __init__(self, msg: Message, notifier: F):
+    def __init__(self, msg: Message, notifier: type[Notifier]):
         self._func = notifier.notify
         self._coro = inspect.iscoroutinefunction(self._func)
         self._notifier = notifier
