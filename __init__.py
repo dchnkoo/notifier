@@ -23,6 +23,9 @@ __all__ = (
 )
 
 
+F = _t.TypeVar("F")
+
+
 class Event(StrEnum):
     INFO = "info"
     WARNING = "warning"
@@ -188,3 +191,50 @@ class Notifiers:
     def to_all(self, msg: Message):
         notifiers = self._notifiers.values()
         return _handle_notify_many([_handle_notify(msg, notifier) for notifier in notifiers])
+
+
+def notify(
+        notifiers: Notifiers,
+        *,
+        return_values: bool = False,
+):
+    def decorator(func: F) -> F:
+        is_gen = inspect.isgeneratorfunction(func)
+        is_coro_gen = inspect.isasyncgenfunction(func)
+
+        if not (is_gen or is_coro_gen):
+            raise TypeError(f"Expected generator function, got {func}")
+
+        async def async_generator_with_values(*args, **kwargs):
+            async for _ in func(*args, **kwargs):
+                if is_message(_):
+                    notifiers.to_all(_).send()
+                    continue
+                yield _
+
+        async def async_generator(*args, **kwargs):
+            _ = None
+            async for _ in async_generator_with_values(*args, **kwargs):
+                ...
+            return  _
+
+        def sync_generator_with_values(*args, **kwargs):
+            for _ in func(*args, **kwargs):
+                if is_message(_):
+                    notifiers.to_all(_).send()
+                    continue
+                yield _
+
+        def sync_generator(*args, **kwargs):
+            _ = None
+            for _ in sync_generator_with_values(*args, **kwargs):
+                ...
+            return  _
+
+        return (
+            async_generator_with_values if (is_coro_gen and return_values)
+            else sync_generator_with_values if not is_coro_gen and return_values
+            else async_generator if is_coro_gen
+            else sync_generator
+        )
+    return decorator

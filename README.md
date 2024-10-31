@@ -85,3 +85,87 @@ async def main():
 
 asyncio.run(main())
 ```
+
+### How to Use the `notify` Decorator
+
+The `notify` decorator is used to wrap generator functions (both synchronous and asynchronous) to automatically send messages to notifiers. Here is how you can use it:
+
+1. **Define Notifiers**: Create subclasses of `Notifier` and implement the `notify` method.
+2. **Create a Notifiers Manager**: Create a class that inherits from `Notifiers` and define your notifiers as class attributes.
+3. **Decorate Generator Functions**: Use the `notify` decorator on your generator functions.
+
+### Examples with `notify` Decorator
+
+Example 1:
+```python
+class PrintNotifier(Notifier):
+    def notify(self, msg: Message) -> None:
+        print(f"{msg.event}: {msg.text}")
+
+class MyNotifiers(Notifiers):
+    print_notifier = PrintNotifier()
+
+@notify(MyNotifiers())
+def my_generator():
+    yield Message(Event.INFO, "This is a test message")
+
+my_generator()
+```
+
+To use the `notify` decorator with the `return_values` argument, follow these steps:
+
+1. **Define Notifiers**: Create subclasses of `Notifier` and implement the `notify` method.
+2. **Create a Notifiers Manager**: Create a class that inherits from `Notifiers` and define your notifiers as class attributes.
+3. **Decorate Generator Functions**: Use the `notify` decorator on your generator functions, and set the `return_values` argument to `True`.
+
+### Example 1: Synchronous Generator with `return_values=True`
+```python
+class PrintNotifier(Notifier):
+    def notify(self, msg: Message) -> None:
+        print(f"{msg.event}: {msg.text}")
+
+class MyNotifiers(Notifiers):
+    print_notifier = PrintNotifier()
+
+@notify(MyNotifiers(), return_values=True)
+def my_generator():
+    yield Message(Event.INFO, "This is a test message")
+    yield "This is a return value"
+
+for value in my_generator():
+    print(f"Returned value: {value}")
+```
+
+### Example 2: Asynchronous Generator with `return_values=True`
+```python
+class AsyncNotifier(Notifier):
+    async def notify(self, msg: Message) -> None:
+        await asyncio.sleep(1)  # Simulate async operation
+        print(f"Async {msg.event}: {msg.text}")
+
+class MyNotifiers(Notifiers):
+    async_notifier = AsyncNotifier()
+
+@notify(MyNotifiers(), return_values=True)
+async def my_async_generator():
+    yield Message(Event.INFO, "This is a test message")
+    yield "This is a return value"
+
+async def main():
+    async for value in my_async_generator():
+        print(f"Returned value: {value}")
+
+asyncio.run(main())
+```
+
+### What the Generators Return
+
+- **Synchronous Generator**: The generator will not yield  `Message` instances, only other values! In the example, it will print:
+  ```
+  Returned value: This is a return value
+  ```
+
+- **Asynchronous Generator**: Similarly. In the example, it will print:
+  ```
+  Returned value: This is a return value
+  ```
